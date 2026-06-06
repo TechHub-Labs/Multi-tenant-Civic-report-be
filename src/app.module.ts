@@ -6,6 +6,7 @@ import { DatabaseModule } from './core/database/database.module';
 import { TenantModule } from './features/tenant/tenant.module';
 import { TenantMiddleware } from './core/tenant/tenant.middleware';
 import { UserModule } from './features/user/user.module';
+import { AuthModule } from './features/auth/auth.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UserModule } from './features/user/user.module';
     DatabaseModule,
     TenantModule,
     UserModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
