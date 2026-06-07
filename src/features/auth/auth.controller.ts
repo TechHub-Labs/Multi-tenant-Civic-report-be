@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -9,6 +9,11 @@ import { CurrentTenant } from '../../core/decorators/current-tenant.decorator';
 import type { TenantDocument } from '../tenant/schemas/tenant.schema';
 
 @ApiTags('Authentication')
+@ApiHeader({ 
+  name: 'x-tenant-slug', 
+  description: 'The unique slug of the tenant organization (Required for all auth requests)', 
+  required: true 
+})
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

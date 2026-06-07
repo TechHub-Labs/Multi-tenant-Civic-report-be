@@ -58,8 +58,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate 6-digit OTP (Hardcoded to 123456 for frontend development)
+    const otp = '123456';
     const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
     
     // Store OTP against user email
