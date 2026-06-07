@@ -1,11 +1,19 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { TenantService } from './tenant.service';
+import { CreateTenantDto } from './dto/create-tenant.dto';
 
 @ApiTags('Tenant')
 @Controller('tenants')
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Self-serve onboarding for a new Tenant (Organization)' })
+  async createTenant(@Body() createTenantDto: CreateTenantDto) {
+    const tenant = await this.tenantService.createTenant(createTenantDto);
+    return { message: 'Tenant successfully created along with Admin user', tenant };
+  }
 
   @Get(':slug/config')
   @ApiOperation({ summary: 'Get public tenant configuration by slug' })

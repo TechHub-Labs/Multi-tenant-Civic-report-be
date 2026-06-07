@@ -26,7 +26,10 @@ export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(TenantMiddleware)
-      .exclude({ path: 'tenants/:slug/config', method: RequestMethod.GET })
+      .exclude(
+        { path: 'tenants/:slug/config', method: RequestMethod.GET },
+        { path: 'tenants', method: RequestMethod.POST }
+      )
       .forRoutes('*');
   }
 }
