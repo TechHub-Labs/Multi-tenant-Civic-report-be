@@ -1,12 +1,12 @@
 import { Controller, Post, Body, Res } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { CurrentTenant } from '../../core/decorators/current-tenant.decorator';
-import { TenantDocument } from '../tenant/schemas/tenant.schema';
+import type { TenantDocument } from '../tenant/schemas/tenant.schema';
 
 @ApiTags('Authentication')
 @Controller('auth')

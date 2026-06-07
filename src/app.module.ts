@@ -26,7 +26,7 @@ export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(TenantMiddleware)
-      .exclude({ path: 'api/v1/tenants/(.*)/config', method: RequestMethod.GET })
+      .exclude({ path: 'tenants/:slug/config', method: RequestMethod.GET })
       .forRoutes('*');
   }
 }
