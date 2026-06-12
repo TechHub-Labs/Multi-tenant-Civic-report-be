@@ -208,7 +208,7 @@ export class ReportService {
 
     // Privacy logic: Mask identity for citizens if report is anonymous
     if (user.role === Role.CITIZEN) {
-      plainReports = plainReports.map(report => {
+      plainReports = plainReports.map((report: any) => {
         if (report.is_anonymous) {
           report.reporter_id = {
             first_name: 'Anonymous',
