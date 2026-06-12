@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiHeader, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiHeader, ApiParam, ApiQuery, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { ReportService } from './report.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { AssignReportDto } from './dto/assign-report.dto';
@@ -11,6 +11,8 @@ import { Role } from '../user/schemas/user.schema';
 import { CurrentTenant } from '../../core/decorators/current-tenant.decorator';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
 import { ReportStatus } from './schemas/report.schema';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
 
 @ApiTags('Reports')
 @ApiHeader({
@@ -21,7 +23,35 @@ import { ReportStatus } from './schemas/report.schema';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('reports')
 export class ReportController {
-  constructor(private readonly reportService: ReportService) {}
+  constructor(
+    private readonly reportService: ReportService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload an image file to Cloudinary (Any authenticated user)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'The file has been successfully uploaded.' })
+  @ApiResponse({ status: 400, description: 'No file uploaded or upload failed.' })
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    const uploadResult = await this.cloudinaryService.uploadFile(file);
+    return {
+      url: uploadResult.secure_url,
+      public_id: uploadResult.public_id,
+    };
+  }
 
   @Post()
   @Roles(Role.CITIZEN, Role.ADMIN)

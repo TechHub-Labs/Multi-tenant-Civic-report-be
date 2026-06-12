@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Body, Res, Get, Query } from '@nestjs/common';
 import type { Response } from 'express';
-import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -61,5 +61,13 @@ export class AuthController {
   async logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('Authentication');
     return { message: 'Logged out successfully' };
+  }
+
+  @Get('otp')
+  @ApiOperation({ summary: 'Dev-only endpoint to retrieve the current valid OTP code for a user email' })
+  @ApiQuery({ name: 'email', required: true, description: 'The registered email of the user' })
+  async getOtp(@Query('email') email: string) {
+    const code = this.authService.getOtp(email);
+    return { email, code };
   }
 }

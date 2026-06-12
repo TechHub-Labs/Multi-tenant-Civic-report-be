@@ -99,4 +99,16 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
     };
   }
+
+  getOtp(email: string): string {
+    const record = this.otpStore.get(email);
+    if (!record) {
+      throw new BadRequestException('No active OTP found for this email');
+    }
+    if (Date.now() > record.expires) {
+      this.otpStore.delete(email);
+      throw new BadRequestException('OTP has expired');
+    }
+    return record.code;
+  }
 }
