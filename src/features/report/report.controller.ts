@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiHeader, ApiParam, ApiQuery, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiHeader, ApiParam, ApiQuery, ApiResponse, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ReportService } from './report.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { AssignReportDto } from './dto/assign-report.dto';
@@ -20,6 +20,7 @@ import { CloudinaryService } from '../../core/cloudinary/cloudinary.service';
   description: 'The unique slug of the tenant organization (Required for all request paths)',
   required: true,
 })
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('reports')
 export class ReportController {
