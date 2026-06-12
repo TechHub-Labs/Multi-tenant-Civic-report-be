@@ -27,10 +27,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : 'Internal server error';
 
-    this.logger.error(
-      `Status: ${status} Error: ${JSON.stringify(message)}`,
-      exception instanceof Error ? exception.stack : '',
-    );
+    if (status >= 500) {
+      this.logger.error(
+        `Status: ${status} Error: ${JSON.stringify(message)}`,
+        exception instanceof Error ? exception.stack : '',
+      );
+    } else {
+      this.logger.warn(
+        `Status: ${status} - Route: ${request.method} ${request.url} - Msg: ${typeof message === 'string' ? message : JSON.stringify(message)}`,
+      );
+    }
 
     response.status(status).json({
       statusCode: status,

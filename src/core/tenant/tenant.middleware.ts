@@ -7,6 +7,11 @@ export class TenantMiddleware implements NestMiddleware {
   constructor(private readonly tenantService: TenantService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
+    const path = req.path;
+    if (path === '/' || path === '/favicon.ico' || path.startsWith('/api/docs')) {
+      return next();
+    }
+
     const slug = req.headers['x-tenant-slug'] as string;
     
     if (!slug) {

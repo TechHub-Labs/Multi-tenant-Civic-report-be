@@ -9,7 +9,9 @@ import { GlobalExceptionFilter } from './core/filters/global-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['/', 'favicon.ico'],
+  });
   app.use(cookieParser());
   
   app.useGlobalInterceptors(new LoggingInterceptor());
