@@ -51,6 +51,7 @@ export class ReportService {
       },
       media_urls: createReportDto.media_urls || [],
       status: ReportStatus.SUBMITTED,
+      is_anonymous: createReportDto.is_anonymous || false,
       timeline: [
         {
           status: ReportStatus.SUBMITTED,
@@ -178,5 +179,87 @@ export class ReportService {
     });
 
     return report.save();
+  }
+
+  async findCommunityFeed(
+    tenantId: string | Types.ObjectId,
+    user: any,
+    filters?: { status?: ReportStatus; category?: string; sortBy?: 'newest' | 'upvotes' },
+  ): Promise<any[]> {
+    const query: any = { tenant_id: new Types.ObjectId(tenantId.toString()) };
+
+    // Apply basic query filters
+    if (filters?.status) {
+      query.status = filters.status;
+    }
+    if (filters?.category) {
+      query.category = { $regex: new RegExp(`^${filters.category}$`, 'i') };
+    }
+
+    const reports = await this.reportModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .populate('reporter_id', 'first_name last_name email role')
+      .populate('assigned_to', 'first_name last_name email')
+      .populate('comments.user_id', 'first_name last_name role')
+      .exec();
+
+    let plainReports = reports.map(r => r.toObject());
+
+    // Privacy logic: Mask identity for citizens if report is anonymous
+    if (user.role === Role.CITIZEN) {
+      plainReports = plainReports.map(report => {
+        if (report.is_anonymous) {
+          report.reporter_id = {
+            first_name: 'Anonymous',
+            last_name: 'Citizen',
+            role: Role.CITIZEN,
+          };
+        }
+        return report;
+      });
+    }
+
+    // Sort by priority (upvotes) if requested
+    if (filters?.sortBy === 'upvotes') {
+      plainReports.sort((a, b) => (b.upvotes?.length || 0) - (a.upvotes?.length || 0));
+    }
+
+    return plainReports;
+  }
+
+  async toggleUpvote(id: string, tenantId: string | Types.ObjectId, userId: string): Promise<ReportDocument> {
+    const report = await this.findOne(id, tenantId);
+    const userObjId = new Types.ObjectId(userId);
+
+    const index = report.upvotes.findIndex(voteId => voteId.toString() === userId);
+    if (index > -1) {
+      report.upvotes.splice(index, 1);
+    } else {
+      report.upvotes.push(userObjId);
+    }
+
+    return report.save();
+  }
+
+  async addComment(
+    id: string,
+    tenantId: string | Types.ObjectId,
+    userId: string,
+    content: string,
+  ): Promise<ReportDocument> {
+    const report = await this.findOne(id, tenantId);
+    const userObjId = new Types.ObjectId(userId);
+
+    report.comments.push({
+      user_id: userObjId,
+      content,
+    } as any);
+
+    const savedReport = await report.save();
+    return this.reportModel.populate(savedReport, {
+      path: 'comments.user_id',
+      select: 'first_name last_name role',
+    });
   }
 }

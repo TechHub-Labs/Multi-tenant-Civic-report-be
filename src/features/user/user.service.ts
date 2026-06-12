@@ -8,7 +8,8 @@ export class UserService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async findByEmailAndTenant(email: string, tenantId: string | Types.ObjectId): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email, tenant_id: tenantId }).exec();
+    const sanitizedEmail = email.trim().toLowerCase();
+    return this.userModel.findOne({ email: sanitizedEmail, tenant_id: tenantId }).exec();
   }
 
   async findByIdAndTenant(id: string | Types.ObjectId, tenantId: string | Types.ObjectId): Promise<UserDocument | null> {
@@ -16,6 +17,9 @@ export class UserService {
   }
 
   async create(userData: Partial<User>): Promise<UserDocument> {
+    if (userData.email) {
+      userData.email = userData.email.trim().toLowerCase();
+    }
     const existing = await this.userModel.findOne({ email: userData.email, tenant_id: userData.tenant_id }).exec();
     if (existing) {
       throw new ConflictException('User with this email already exists in this tenant');

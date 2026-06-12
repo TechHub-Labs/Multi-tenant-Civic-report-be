@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
 
 export class CreateReportDto {
   @ApiProperty({ example: 'Pothole on Main Street' })
@@ -30,4 +30,9 @@ export class CreateReportDto {
   @IsString({ each: true })
   @IsOptional()
   media_urls?: string[];
+
+  @ApiPropertyOptional({ example: false, default: false, description: 'Toggle to mask name/email in public feeds' })
+  @IsBoolean()
+  @IsOptional()
+  is_anonymous?: boolean;
 }

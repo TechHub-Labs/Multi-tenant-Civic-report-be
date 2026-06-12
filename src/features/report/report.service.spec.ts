@@ -312,4 +312,129 @@ describe('ReportService', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
+  describe('Community Features', () => {
+    const tenantId = new Types.ObjectId();
+
+    describe('createReport (anonymous)', () => {
+      it('should save anonymity preference', async () => {
+        const citizen = { userId: new Types.ObjectId().toString(), role: Role.CITIZEN };
+        const dto = {
+          title: 'Leaky Pipe',
+          description: 'Water everywhere',
+          category: 'Plumbing',
+          longitude: 5,
+          latitude: 5,
+          is_anonymous: true,
+        };
+
+        const result = await service.createReport(
+          { _id: tenantId, categories: ['Plumbing'] },
+          citizen,
+          dto,
+        );
+        expect(result.is_anonymous).toBe(true);
+      });
+    });
+
+    describe('findCommunityFeed', () => {
+      it('should mask reporter details for Citizens if report is anonymous', async () => {
+        const citizenUser = { userId: new Types.ObjectId().toString(), role: Role.CITIZEN };
+        const reporterObj = {
+          _id: new Types.ObjectId(),
+          first_name: 'John',
+          last_name: 'Reporter',
+          email: 'john@reporter.com',
+          role: Role.CITIZEN,
+        };
+
+        const reportsList = [
+          mockReport({
+            tenant_id: tenantId,
+            is_anonymous: true,
+            reporter_id: reporterObj,
+            toObject: function (this: any) {
+              return { ...this, reporter_id: { ...reporterObj } };
+            },
+          }),
+        ];
+
+        reportModelMock.find.mockReturnValue(createQueryMock(reportsList));
+
+        const result = await service.findCommunityFeed(tenantId, citizenUser);
+        expect(result).toHaveLength(1);
+        expect(result[0].reporter_id.first_name).toBe('Anonymous');
+        expect(result[0].reporter_id.last_name).toBe('Citizen');
+        expect(result[0].reporter_id.email).toBeUndefined();
+      });
+
+      it('should NOT mask reporter details for Admins if report is anonymous', async () => {
+        const adminUser = { userId: new Types.ObjectId().toString(), role: Role.ADMIN };
+        const reporterObj = {
+          _id: new Types.ObjectId(),
+          first_name: 'John',
+          last_name: 'Reporter',
+          email: 'john@reporter.com',
+          role: Role.CITIZEN,
+        };
+
+        const reportsList = [
+          mockReport({
+            tenant_id: tenantId,
+            is_anonymous: true,
+            reporter_id: reporterObj,
+            toObject: function (this: any) {
+              return { ...this, reporter_id: { ...reporterObj } };
+            },
+          }),
+        ];
+
+        reportModelMock.find.mockReturnValue(createQueryMock(reportsList));
+
+        const result = await service.findCommunityFeed(tenantId, adminUser);
+        expect(result).toHaveLength(1);
+        expect(result[0].reporter_id.first_name).toBe('John');
+        expect(result[0].reporter_id.last_name).toBe('Reporter');
+        expect(result[0].reporter_id.email).toBe('john@reporter.com');
+      });
+    });
+
+    describe('toggleUpvote', () => {
+      it('should add vote if user has not upvoted yet, and remove if they have', async () => {
+        const userId = new Types.ObjectId().toString();
+        const report = mockReport({ tenant_id: tenantId, upvotes: [] });
+
+        reportModelMock.findOne.mockReturnValue(createQueryMock(report));
+
+        // Toggle upvote (adds)
+        let result = await service.toggleUpvote(report._id.toString(), tenantId, userId);
+        expect(result.upvotes).toContainEqual(new Types.ObjectId(userId));
+
+        // Toggle again (removes)
+        result = await service.toggleUpvote(report._id.toString(), tenantId, userId);
+        expect(result.upvotes).not.toContainEqual(new Types.ObjectId(userId));
+      });
+    });
+
+    describe('addComment', () => {
+      it('should append a comment and populate user_id details', async () => {
+        const userId = new Types.ObjectId().toString();
+        const report = mockReport({ tenant_id: tenantId, comments: [] });
+
+        reportModelMock.findOne.mockReturnValue(createQueryMock(report));
+        reportModelMock.populate = jest.fn().mockImplementation((doc) => doc);
+
+        const result = await service.addComment(
+          report._id.toString(),
+          tenantId,
+          userId,
+          'Test comment content',
+        );
+
+        expect(result.comments).toHaveLength(1);
+        expect(result.comments[0].content).toBe('Test comment content');
+        expect(result.comments[0].user_id).toEqual(new Types.ObjectId(userId));
+      });
+    });
+  });
 });

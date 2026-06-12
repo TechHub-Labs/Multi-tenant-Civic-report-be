@@ -4,6 +4,7 @@ import { ReportService } from './report.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { AssignReportDto } from './dto/assign-report.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
 import { Roles } from '../../core/decorators/roles.decorator';
@@ -87,6 +88,26 @@ export class ReportController {
     });
   }
 
+  @Get('community')
+  @Roles(Role.CITIZEN, Role.TECHNICIAN, Role.ADMIN)
+  @ApiOperation({ summary: 'Get the community feed of reports with automatic anonymity masking' })
+  @ApiQuery({ name: 'status', enum: ReportStatus, required: false })
+  @ApiQuery({ name: 'category', type: String, required: false })
+  @ApiQuery({ name: 'sortBy', enum: ['newest', 'upvotes'], required: false, description: 'Sort order: newest (default) or upvotes (priority)' })
+  async getCommunityFeed(
+    @CurrentTenant() tenant: any,
+    @CurrentUser() user: any,
+    @Query('status') status?: ReportStatus,
+    @Query('category') category?: string,
+    @Query('sortBy') sortBy?: 'newest' | 'upvotes',
+  ) {
+    return this.reportService.findCommunityFeed(tenant._id, user, {
+      status,
+      category,
+      sortBy,
+    });
+  }
+
   @Get(':id')
   @Roles(Role.CITIZEN, Role.TECHNICIAN, Role.ADMIN)
   @ApiOperation({ summary: 'Get details of a single report' })
@@ -128,5 +149,30 @@ export class ReportController {
     @CurrentUser() user: any,
   ) {
     return this.reportService.updateStatus(id, tenant._id, updateStatusDto, user);
+  }
+
+  @Post(':id/upvote')
+  @Roles(Role.CITIZEN, Role.TECHNICIAN, Role.ADMIN)
+  @ApiOperation({ summary: 'Toggle upvote / priority vote on a report' })
+  @ApiParam({ name: 'id', description: 'Report Mongoose ObjectId' })
+  async toggleUpvote(
+    @CurrentTenant() tenant: any,
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.reportService.toggleUpvote(id, tenant._id, user.userId);
+  }
+
+  @Post(':id/comments')
+  @Roles(Role.CITIZEN, Role.TECHNICIAN, Role.ADMIN)
+  @ApiOperation({ summary: 'Post a public comment on a report' })
+  @ApiParam({ name: 'id', description: 'Report Mongoose ObjectId' })
+  async addComment(
+    @CurrentTenant() tenant: any,
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() createCommentDto: CreateCommentDto,
+  ) {
+    return this.reportService.addComment(id, tenant._id, user.userId, createCommentDto.content);
   }
 }

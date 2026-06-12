@@ -28,6 +28,17 @@ export class TimelineEntry {
 }
 
 @Schema({ timestamps: true })
+export class ReportComment {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  user_id: Types.ObjectId;
+
+  @Prop({ required: true })
+  content: string;
+}
+
+export const ReportCommentSchema = SchemaFactory.createForClass(ReportComment);
+
+@Schema({ timestamps: true })
 export class Report {
   @Prop({ type: Types.ObjectId, ref: Tenant.name, required: true, index: true })
   tenant_id: Types.ObjectId;
@@ -72,6 +83,15 @@ export class Report {
 
   @Prop({ type: [TimelineEntry], default: [] })
   timeline: TimelineEntry[];
+
+  @Prop({ type: Boolean, required: true, default: false })
+  is_anonymous: boolean;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  upvotes: Types.ObjectId[];
+
+  @Prop({ type: [ReportCommentSchema], default: [] })
+  comments: ReportComment[];
 }
 
 export const ReportSchema = SchemaFactory.createForClass(Report);

@@ -20,10 +20,11 @@ export class AuthService {
 
   async register(tenant: TenantDocument, registerDto: RegisterDto): Promise<UserDocument> {
     const { mode, allowed_domains, active_invite_tokens } = tenant.join_settings;
+    const sanitizedEmail = registerDto.email.trim().toLowerCase();
 
     // Validate registration modes
     if (mode === JoinMode.DOMAIN_RESTRICTED) {
-      const emailDomain = '@' + registerDto.email.split('@')[1];
+      const emailDomain = '@' + sanitizedEmail.split('@')[1];
       if (!allowed_domains.includes(emailDomain)) {
         throw new BadRequestException(`Email domain ${emailDomain} is not allowed for this tenant`);
       }
@@ -42,13 +43,14 @@ export class AuthService {
       first_name: registerDto.first_name,
       last_name: registerDto.last_name,
       middle_name: registerDto.middle_name,
-      email: registerDto.email,
+      email: sanitizedEmail,
       password_hash,
     });
   }
 
   async login(tenantId: any, loginDto: LoginDto): Promise<{ message: string; email: string }> {
-    const user = await this.userService.findByEmailAndTenant(loginDto.email, tenantId);
+    const sanitizedEmail = loginDto.email.trim().toLowerCase();
+    const user = await this.userService.findByEmailAndTenant(sanitizedEmail, tenantId);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -63,22 +65,23 @@ export class AuthService {
     const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
     
     // Store OTP against user email
-    this.otpStore.set(user.email, { code: otp, expires, userId: user._id.toString() });
+    this.otpStore.set(sanitizedEmail, { code: otp, expires, userId: user._id.toString() });
 
     // Console logging OTP as requested
-    this.logger.log(`\n===================================\n[OTP FOR ${user.email}]: ${otp}\n===================================`);
+    this.logger.log(`\n===================================\n[OTP FOR ${sanitizedEmail}]: ${otp}\n===================================`);
 
-    return { message: 'OTP sent successfully. Please verify to continue.', email: user.email };
+    return { message: 'OTP sent successfully. Please verify to continue.', email: sanitizedEmail };
   }
 
   async verifyOtp(tenantId: any, email: string, code: string): Promise<{ access_token: string }> {
-    const record = this.otpStore.get(email);
+    const sanitizedEmail = email.trim().toLowerCase();
+    const record = this.otpStore.get(sanitizedEmail);
     if (!record) {
       throw new BadRequestException('No pending OTP found for this email');
     }
 
     if (Date.now() > record.expires) {
-      this.otpStore.delete(email);
+      this.otpStore.delete(sanitizedEmail);
       throw new BadRequestException('OTP has expired');
     }
 
@@ -87,7 +90,7 @@ export class AuthService {
     }
 
     // Clear OTP after successful verification
-    this.otpStore.delete(email);
+    this.otpStore.delete(sanitizedEmail);
 
     const user = await this.userService.findByIdAndTenant(record.userId, tenantId);
     if (!user) {
@@ -101,12 +104,13 @@ export class AuthService {
   }
 
   getOtp(email: string): string {
-    const record = this.otpStore.get(email);
+    const sanitizedEmail = email.trim().toLowerCase();
+    const record = this.otpStore.get(sanitizedEmail);
     if (!record) {
       throw new BadRequestException('No active OTP found for this email');
     }
     if (Date.now() > record.expires) {
-      this.otpStore.delete(email);
+      this.otpStore.delete(sanitizedEmail);
       throw new BadRequestException('OTP has expired');
     }
     return record.code;
